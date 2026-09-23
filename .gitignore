@@ -12,7 +12,11 @@ logs/
 checkpoint-*/
 qwen25vl-grpo-*/
 
-# Data (built locally; not part of the code release)
+# Evaluation output
+eval/results/
+eval/results_cleaned/
+
+# Built locally, not part of the code release
 grpo/data/*.parquet
 sft/data/*.json
 sft/data/*.jsonl

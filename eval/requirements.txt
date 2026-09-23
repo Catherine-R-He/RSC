@@ -1,0 +1,8 @@
+# Evaluation environment (python 3.10). The GRPO environment in ../grpo also
+# satisfies this; torch/flash-attn must match your CUDA toolkit.
+torch==2.6.0
+transformers==4.57.1
+accelerate==1.11.0
+pillow==12.0.0
+tqdm
+flash-attn==2.7.4.post1

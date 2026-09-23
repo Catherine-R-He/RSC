@@ -1,0 +1,41 @@
+{
+  "safe": {
+    "cap": [
+      "cap",
+      "bottle cap"
+    ],
+    "caps": [
+      "cap",
+      "bottle cap"
+    ],
+    "tap": [
+      "faucet",
+      "water faucet"
+    ],
+    "taps": [
+      "faucet",
+      "water faucet"
+    ],
+    "glass": [
+      "glass",
+      "spectacles"
+    ],
+    "mailbox": [
+      "mailbox",
+      "postbox"
+    ],
+    "mailboxes": [
+      "mailbox",
+      "postbox"
+    ],
+    "trunk": [
+      "short pants",
+      "trunk"
+    ],
+    "trunks": [
+      "short pants",
+      "trunk"
+    ]
+  },
+  "risky": {}
+}
