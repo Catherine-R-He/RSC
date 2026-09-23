@@ -1,0 +1,7 @@
+# 8x GPU single node. The DeepSpeed settings themselves live in ds_zero3.json,
+# passed via --deepspeed_config_file at launch.
+compute_environment: LOCAL_MACHINE
+distributed_type: DEEPSPEED
+num_processes: 8
+num_machines: 1
+machine_rank: 0

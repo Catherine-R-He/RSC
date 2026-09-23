@@ -1,0 +1,11 @@
+# SFT environment (conda env: python 3.10). Training runs through LLaMA-Factory,
+# installed separately with `pip install -e .` from its repo; these are the
+# versions the released SFT checkpoint was trained with.
+llamafactory==0.9.2
+torch==2.6.0
+transformers==4.49.0
+trl==0.9.6
+accelerate==1.2.1
+datasets==3.2.0
+deepspeed==0.18.0
+peft==0.12.0

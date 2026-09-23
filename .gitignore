@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Training artifacts
+wandb/
+saves/
+runs/
+logs/
+checkpoint-*/
+qwen25vl-grpo-*/
+
+# Data (built locally; not part of the code release)
+grpo/data/*.parquet
+sft/data/*.json
+sft/data/*.jsonl
+!sft/data/dataset_info.json
+
+# Misc
+.DS_Store
+*.log
