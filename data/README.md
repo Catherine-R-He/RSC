@@ -22,6 +22,17 @@ $COCO_ROOT/
 export COCO_ROOT=/path/to/COCO
 ```
 
+The two splits reference 5,664 unique images (~700 MB) across three COCO
+releases whose full archives total ~32 GB, so `download_images.py` fetches just
+those:
+
+```bash
+python download_images.py --image-root "$COCO_ROOT"
+```
+
+It skips files that already exist, so it is safe to re-run after an interruption
+and safe to point at an existing COCO tree — it only fills in what is missing.
+
 ## Record format
 
 ```json
