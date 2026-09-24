@@ -1,6 +1,7 @@
 # Beyond Referring Expressions: Scenario Comprehension Visual Grounding
 
-Code and evaluation data for **RSC** (Referring Scenario Comprehension).
+Code and evaluation data for **RSC**, a benchmark for grounding objects from
+situated scenario descriptions, and **ScenGround**, the model trained on it.
 
 [Paper (arXiv:2604.02323)](https://arxiv.org/abs/2604.02323) ·
 Ruozhen He, Nisarg A. Shah, Qihua Dong, Zilin Xiao, Jaywon Koo, Vicente Ordonez
@@ -143,13 +144,39 @@ and `L1_bbox(norm)` for how the misses fail; `CatAcc(strict)` and `CatAcc(loose)
 for naming, matched through a COCO or LVIS alias table so `sofa` counts for
 `couch`.
 
-**Results** for the three stages of the released pipeline:
+**Results** (Table 3 in the paper). All values are percentages.
 
-| Model | ID mIoU | ID Acc@0.5 | ID CatAcc | OOD mIoU | OOD Acc@0.5 | OOD CatAcc |
+| Model | RSC-ID mIoU | Acc@0.5 | Acc@0.7 | CatAcc | RSC-OOD mIoU | Acc@0.5 | Acc@0.7 | CatAcc |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| GPT-4o <sub>(Hurst et al., 2024)</sub> | 19.41 | 13.23 | 5.37 | 79.45 | 16.57 | 9.55 | 3.08 | **62.00** |
+| Claude 3.7 <sub>(Anthropic, 2025)</sub> | 16.64 | 8.32 | 3.71 | 89.67 | 12.04 | 5.54 | 1.87 | 58.98 |
+| Grounding DINO (cat token)<sup>‡</sup> | 44.60 | 47.55 | 42.03 | — | 32.18 | 31.99 | 27.89 | — |
+| Grounding DINO (ref. cue)<sup>‡</sup> | 48.99 | 51.84 | 46.02 | — | 38.12 | 38.26 | 34.07 | — |
+| InternVL2.5 8B <sub>(Chen et al., 2024a)</sub> | 16.76 | 11.88 | 6.74 | 81.70 | 8.08 | 3.64 | 1.61 | 36.50 |
+| Qwen3-VL 8B <sub>(Team, 2025)</sub> | 15.46 | 11.17 | 6.05 | 75.04 | 7.38 | 3.70 | 1.48 | 46.97 |
+| Qwen2.5-VL 7B <sub>(Bai et al., 2025a)</sub> | 30.31 | 27.42 | 15.66 | 30.86 | 21.54 | 15.88 | 9.19 | 20.82 |
+| **ScenGround (ours)** | **55.68** | **60.90** | **42.32** | **94.23** | **38.37** | **38.11** | **22.64** | 21.13 |
+
+Higher is better throughout; `CatAcc` is category accuracy. Bold marks the best
+value among the directly comparable rows, i.e. excluding the two oracle rows.
+
+<sup>‡</sup> **Oracle settings, not directly comparable.** Grounding DINO
+receives privileged inputs unavailable at inference: *cat token* provides the
+gold category name directly, and *ref. cue* feeds the concluding "referring
+expression cue" of the reasoning trace (see Figure 2 in the paper) as the
+open-vocabulary query.
+
+The `ScenGround (ours)` row is the stage-2 checkpoint and is reproducible with
+the code in this repository; the baseline rows are reported from the paper,
+whose evaluation harnesses are not part of this release.
+
+Across the three training stages:
+
+| Stage | ID mIoU | ID Acc@0.5 | ID CatAcc | OOD mIoU | OOD Acc@0.5 | OOD CatAcc |
 | --- | --- | --- | --- | --- | --- | --- |
-| SFT | 0.550 | 0.605 | 0.891 | 0.332 | 0.340 | 0.125 |
-| + GRPO stage 1 | 0.557 | 0.610 | 0.944 | 0.369 | 0.366 | 0.190 |
-| + GRPO stage 2 | 0.557 | 0.609 | 0.942 | **0.384** | **0.381** | 0.211 |
+| SFT | 55.01 | 60.51 | 89.05 | 33.20 | 34.03 | 12.53 |
+| + GRPO stage 1 | 55.68 | 60.95 | 94.40 | 36.93 | 36.59 | 19.00 |
+| + GRPO stage 2 | 55.68 | 60.90 | 94.23 | 38.37 | 38.11 | 21.13 |
 
 `CatAcc` is the strict variant. Sample counts differ by a handful between rows
 because a sample only enters the localisation metrics when the model actually
@@ -157,7 +184,7 @@ produced a box.
 
 ## 4. Training
 
-The released model is built in three stages, each initialised from the previous
+ScenGround is built in three stages, each initialised from the previous
 one. Expect 8 GPUs; the GRPO stages run under DeepSpeed ZeRO-3.
 
 ### 4.1 SFT
@@ -231,7 +258,7 @@ new machine; the full table is in [`grpo/README.md`](grpo/README.md).
 Qwen/Qwen2.5-VL-7B-Instruct
   └─ SFT               step 2340
        └─ GRPO stage 1 step 400
-            └─ GRPO stage 2 step 100   ← released model
+            └─ GRPO stage 2 step 100   ← ScenGround (released model)
 ```
 
 ## Citation
