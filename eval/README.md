@@ -68,7 +68,7 @@ model:
 python tools/recalc_metrics.py \
   --subset ../data/rsc_id_test.jsonl \
   --results results/*.json \
-  --outdir results_cleaned/
+  --outdir results_subset/
 ```
 
 ## Category aliases

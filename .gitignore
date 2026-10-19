@@ -14,7 +14,7 @@ qwen25vl-grpo-*/
 
 # Evaluation output
 eval/results/
-eval/results_cleaned/
+eval/results_subset/
 
 # Built locally, not part of the code release
 grpo/data/*.parquet

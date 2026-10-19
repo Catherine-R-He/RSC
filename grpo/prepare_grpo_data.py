@@ -14,22 +14,20 @@ template id used).
 
 Each sample is rendered with one of eight prompt templates. Template 0 is the
 one the SFT model was trained on; ``--sft-ratio`` controls how often it is
-drawn, and we lower it across stages (0.7 -> 0.4 -> 0.1) so the policy is
-progressively forced to generalise beyond the SFT phrasing instead of
-memorising it.
+drawn, and we lower it across stages (0.7 in stage 1, 0.4 in stage 2) so the
+policy is progressively forced to generalise beyond the SFT phrasing instead
+of memorising it.
 """
 
 import argparse
 import json
 import os
 import random
+from collections import Counter
 
 import datasets
 
 from rsc_grpo.labels import canonicalize_label, normalize_label
-from rsc_grpo.parsing import ANSWER_CLOSE, ANSWER_OPEN
-
-REGEX_ANSWER_EXTRACT = r"<answer>([\s\S]*?)</answer>"
 
 # ---------------------------------------------------------------------------
 # Accepted category names
@@ -264,17 +262,12 @@ def make_map_fn(split: str, seed: int, multi_templates: bool,
             "cat_allowed_raw": allowed_raw,
             "cat_allowed_canonical": sorted({canonicalize_label(n) for n in allowed_raw if n}),
             "cat_allowed_norm": sorted({normalize_label(n) for n in allowed_raw if n}),
-            "data_source": "rsc",
             "split": split,
             "index": idx,
             "image_path": image_path,
             "image_id": ex.get("image_id", ""),
             "ann_id": ex.get("ann_id", ""),
             "scenario": scenario,
-            "stop": [ANSWER_CLOSE],
-            "regex_answer_extract": REGEX_ANSWER_EXTRACT,
-            "answer_open": ANSWER_OPEN,
-            "answer_close": ANSWER_CLOSE,
             "template_id": t_id,
             "template_name": TEMPLATE_NAMES[t_id],
         }
@@ -298,7 +291,7 @@ def parse_args():
     ap.add_argument("--refs-json", required=True, help="input JSONL of scenario samples")
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--split", default="train",
-                    choices=["train", "stage1", "stage2", "stage3", "val", "test"])
+                    choices=["train", "stage1", "stage2", "val", "test"])
     ap.add_argument("--seed", type=int, default=1337)
     ap.add_argument("--multi-templates", action="store_true",
                     help="sample among the 8 prompt templates instead of using one")
@@ -339,7 +332,6 @@ def main():
         desc=f"Converting {args.split} → TRL GRPO parquet",
     )
 
-    from collections import Counter
     hist = Counter(ds["template_id"])
     tot = sum(hist.values())
     print("Realized template histogram →",

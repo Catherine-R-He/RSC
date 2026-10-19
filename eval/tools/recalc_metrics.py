@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Re-filter result files to a subset of ann_ids and recompute the metrics.
 
-Useful for scoring an existing run against a narrower set (a cleaned split, a
-tag slice) without re-running the model, since ``eval_grounding.py`` writes
-every per-sample record it scored.
+Useful for scoring an existing run against a narrower set (e.g. a tag slice)
+without re-running the model, since ``eval_grounding.py`` writes every
+per-sample record it scored.
 
     python tools/recalc_metrics.py \\
         --subset ../data/rsc_id_test.jsonl \\
         --results results/*.json \\
-        --outdir results_cleaned/
+        --outdir results_subset/
 
 One difference from ``eval_grounding.py``: category accuracy is counted over
 records with a non-empty ``pred_canonical``, whereas the evaluator counts
@@ -108,8 +108,8 @@ def main():
         print(f"  {len(orig_details)} → {len(filtered)} records "
               f"({len(orig_details) - len(filtered)} removed)")
 
-        new_report = {k: orig_report[k] for k in ("provider", "model", "vocab") if k in orig_report}
-        new_report["cleaned_from"] = name
+        new_report = {k: orig_report[k] for k in ("model", "vocab") if k in orig_report}
+        new_report["source"] = name
         new_report["orig_samples"] = orig_report.get("samples", len(orig_details))
         new_report["kept_ann_ids"] = len(filtered)
         new_report.update(recompute(filtered, dim_map))
@@ -129,7 +129,7 @@ def main():
     print("SUMMARY")
     print("=" * 70)
     for orig, new in summary:
-        print(f"  {orig.get('model', new['cleaned_from'])}")
+        print(f"  {orig.get('model', new['source'])}")
         print(f"    orig:       Acc@0.5={orig.get('Acc@0.5','?')}  mIoU={orig.get('mIoU','?')}  "
               f"samples={orig.get('samples','?')}")
         print(f"    recomputed: Acc@0.5={new.get('Acc@0.5','?')}  mIoU={new.get('mIoU','?')}  "

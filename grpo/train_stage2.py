@@ -48,7 +48,7 @@ EXP_NAME = os.environ.get("EXP_NAME", "qwen25vl-grpo-bbox-stage2")
 OUT_DIR = os.environ.get("OUT_DIR", EXP_NAME)
 DS_CONFIG = os.environ.get("DS_CONFIG", str(HERE / "configs" / "ds_zero3.json"))
 
-os.environ.setdefault("WANDB_PROJECT", "trl-grpo-rec")
+os.environ.setdefault("WANDB_PROJECT", "rsc-grpo")
 os.environ.setdefault("WANDB_RUN_GROUP", "qwen25vl")
 os.environ.setdefault("WANDB_WATCH", "false")
 

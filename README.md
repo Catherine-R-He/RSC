@@ -1,269 +1,49 @@
 # Beyond Referring Expressions: Scenario Comprehension Visual Grounding
+> Authors: Ruozhen He, Nisarg A. Shah, Qihua Dong, Zilin Xiao, Jaywon Koo, Vicente Ordonez
 
-Code and evaluation data for **RSC**, a benchmark for grounding objects from
-situated scenario descriptions, and **ScenGround**, the model trained on it.
+[\[Paper\]](https://arxiv.org/abs/2604.02323) [\[Project Page\]](https://catherine-r-he.github.io/RSC/)
 
-[Paper (arXiv:2604.02323)](https://arxiv.org/abs/2604.02323) ·
-Ruozhen He, Nisarg A. Shah, Qihua Dong, Zilin Xiao, Jaywon Koo, Vicente Ordonez
-
-## Overview
-
-Classic referring-expression grounding gives the model a short phrase that
-names the target. RSC instead gives a **scenario**: a situated description of
-what someone is doing and why, from which the target has to be *inferred*.
-
-> *As a graphic designer selecting a background for a couple's adventure
-> poster, you need the large, shiny black vehicle beneath them, not the people
-> or the grass.*
-
-The model reasons inside `<think>...</think>` and emits one JSON object inside
-`<answer>...</answer>`:
-
-```json
-{"target_object": "motorcycle", "bbox": [104, 136, 426, 233]}
-```
-
-`bbox` is `[x, y, w, h]` in pixels. Predictions are scored on localisation
-(IoU) and on naming the right category.
-
-## Repository layout
-
-```
-data/     the two evaluation splits, and the COCO image downloader
-sft/      supervised fine-tuning configs (LLaMA-Factory)
-grpo/     two-stage GRPO training (TRL)
-eval/     in-domain and out-of-domain evaluation
-```
-
-Each directory has its own README with the details; this page is the path from
-a clean machine to a number.
-
----
-
-## 1. Setup
-
-```bash
-git clone https://github.com/Catherine-R-He/RSC.git
-cd RSC
-```
-
-Training needs **two environments**: LLaMA-Factory pins an older
-`transformers`/`trl` than TRL's GRPO trainer requires, so they cannot share one.
-If you only want to run evaluation, the GRPO environment is enough.
-
-**GRPO + evaluation**
-
-```bash
+### Requirements
+Training uses two environments, because LLaMA-Factory and TRL need different `transformers`/`trl` versions. Evaluation only needs the GRPO environment.
+```Shell
+# GRPO + evaluation
 conda create -n rsc-grpo python=3.10 && conda activate rsc-grpo
 pip install -r grpo/requirements.txt
-```
 
-**SFT**
-
-```bash
+# SFT
 conda create -n rsc-sft python=3.10 && conda activate rsc-sft
-git clone https://github.com/hiyouga/LLaMA-Factory.git
-pip install -e LLaMA-Factory
+git clone https://github.com/hiyouga/LLaMA-Factory.git && pip install -e LLaMA-Factory
 pip install -r sft/requirements.txt
 ```
 
-Both `requirements.txt` files pin the versions the released runs used. `torch`
-and `flash-attn` must match your CUDA toolkit — install those first if your
-setup is unusual, then the rest.
-
-Training and evaluation log to Weights & Biases:
-
-```bash
-wandb login          # or: export WANDB_MODE=offline
+### Data
+- RSC annotations are included: `data/rsc_id_test.jsonl` (in-domain, 4,038, COCO vocabulary) and `data/rsc_ood_test.jsonl` (out-of-domain, 3,247, LVIS vocabulary).
+- MS-COCO [\[Images\]](https://cocodataset.org/#download). To download only the images the splits use (~700 MB), run:
+```Shell
+python data/download_images.py --image-root $COCO_ROOT
 ```
 
-## 2. Data
-
-The annotations ship with this repository:
-
-| Split | File | Records | Category vocabulary |
-| --- | --- | --- | --- |
-| In-domain | `data/rsc_id_test.jsonl` | 4,038 | COCO |
-| Out-of-domain | `data/rsc_ood_test.jsonl` | 3,247 | LVIS |
-
-The images do not — they are COCO. `image_path` is stored relative to a COCO
-root, and the two splits together reference 5,664 images spread across three
-COCO releases whose full archives are ~32 GB. The included downloader fetches
-only what is needed (~700 MB):
-
-```bash
-export COCO_ROOT=/path/to/COCO
-python data/download_images.py --image-root "$COCO_ROOT"
-```
-
-It skips files that already exist, so it is safe to re-run after an
-interruption, and safe to point at an existing COCO tree — it will only fill in
-what is missing. The expected layout is:
-
-```
-$COCO_ROOT/
-  2014/train2014/COCO_train2014_000000045840.jpg
-  train2017/000000335323.jpg
-  val2017/000000012345.jpg
-```
-
-If your COCO copy is laid out differently, either symlink it into this shape or
-pass `--image-root` pointing at the right level. See
-[`data/README.md`](data/README.md) for the full record format.
-
-## 3. Evaluation
-
-```bash
-conda activate rsc-grpo
-export COCO_ROOT=/path/to/COCO
-
-MODEL=/path/to/checkpoint eval/scripts/eval_id.sh    # in-domain,     4,038 samples
-MODEL=/path/to/checkpoint eval/scripts/eval_ood.sh   # out-of-domain, 3,247 samples
-```
-
-`MODEL` is a local checkpoint directory or a Hugging Face model id. Results land
-in `eval/results/` as a JSON file holding the summary report plus every
-per-sample prediction. Or call the script directly:
-
-```bash
-python eval/eval_grounding.py \
-  --grounding-json data/rsc_id_test.jsonl \
-  --vocab coco \
-  --model /path/to/checkpoint \
-  --image-root "$COCO_ROOT" \
-  --out-dir eval/results
-```
-
-Use `--vocab lvis` for the out-of-domain split; it switches both the category
-vocabulary named in the prompt and the alias table used for scoring. Add
-`--max-samples 50` for a quick smoke test before committing a GPU to the full
-run. Full options are in [`eval/README.md`](eval/README.md).
-
-**Metrics.** `mIoU`, `Acc@0.5` and `Acc@0.7` for localisation; `CenterL2(norm)`
-and `L1_bbox(norm)` for how the misses fail; `CatAcc(strict)` and `CatAcc(loose)`
-for naming, matched through a COCO or LVIS alias table so `sofa` counts for
-`couch`.
-
-**Results** (Table 3 in the paper). All values are percentages.
-
-| Model | RSC-ID mIoU | Acc@0.5 | Acc@0.7 | CatAcc | RSC-OOD mIoU | Acc@0.5 | Acc@0.7 | CatAcc |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| GPT-4o <sub>(Hurst et al., 2024)</sub> | 19.41 | 13.23 | 5.37 | 79.45 | 16.57 | 9.55 | 3.08 | **62.00** |
-| Claude 3.7 <sub>(Anthropic, 2025)</sub> | 16.64 | 8.32 | 3.71 | 89.67 | 12.04 | 5.54 | 1.87 | 58.98 |
-| Grounding DINO (cat token)<sup>‡</sup> | 44.60 | 47.55 | 42.03 | — | 32.18 | 31.99 | 27.89 | — |
-| Grounding DINO (ref. cue)<sup>‡</sup> | 48.99 | 51.84 | 46.02 | — | 38.12 | 38.26 | 34.07 | — |
-| InternVL2.5 8B <sub>(Chen et al., 2024a)</sub> | 16.76 | 11.88 | 6.74 | 81.70 | 8.08 | 3.64 | 1.61 | 36.50 |
-| Qwen3-VL 8B <sub>(Team, 2025)</sub> | 15.46 | 11.17 | 6.05 | 75.04 | 7.38 | 3.70 | 1.48 | 46.97 |
-| Qwen2.5-VL 7B <sub>(Bai et al., 2025a)</sub> | 30.31 | 27.42 | 15.66 | 30.86 | 21.54 | 15.88 | 9.19 | 20.82 |
-| **ScenGround (ours)** | **55.68** | **60.90** | **42.32** | **94.23** | **38.37** | **38.11** | **22.64** | 21.13 |
-
-Higher is better throughout; `CatAcc` is category accuracy. Bold marks the best
-value among the directly comparable rows, i.e. excluding the two oracle rows.
-
-<sup>‡</sup> **Oracle settings, not directly comparable.** Grounding DINO
-receives privileged inputs unavailable at inference: *cat token* provides the
-gold category name directly, and *ref. cue* feeds the concluding "referring
-expression cue" of the reasoning trace (see Figure 2 in the paper) as the
-open-vocabulary query.
-
-The `ScenGround (ours)` row is the stage-2 checkpoint and is reproducible with
-the code in this repository; the baseline rows are reported from the paper,
-whose evaluation harnesses are not part of this release.
-
-Across the three training stages:
-
-| Stage | ID mIoU | ID Acc@0.5 | ID CatAcc | OOD mIoU | OOD Acc@0.5 | OOD CatAcc |
-| --- | --- | --- | --- | --- | --- | --- |
-| SFT | 55.01 | 60.51 | 89.05 | 33.20 | 34.03 | 12.53 |
-| + GRPO stage 1 | 55.68 | 60.95 | 94.40 | 36.93 | 36.59 | 19.00 |
-| + GRPO stage 2 | 55.68 | 60.90 | 94.23 | 38.37 | 38.11 | 21.13 |
-
-`CatAcc` is the strict variant. Sample counts differ by a handful between rows
-because a sample only enters the localisation metrics when the model actually
-produced a box.
-
-## 4. Training
-
-ScenGround is built in three stages, each initialised from the previous
-one. Expect 8 GPUs; the GRPO stages run under DeepSpeed ZeRO-3.
-
-### 4.1 SFT
-
-Teaches the think/answer format and basic scenario grounding, starting from
-`Qwen/Qwen2.5-VL-7B-Instruct`. The vision tower and multimodal projector are
-frozen, so only the language model moves.
-
-Put your ShareGPT-format training file at `sft/data/sft_sharegpt.jsonl` (format
-in [`sft/README.md`](sft/README.md)), then run from your LLaMA-Factory checkout:
-
-```bash
-conda activate rsc-sft
+### Train
+Start from [Qwen2.5-VL-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct) and train in three stages, each initialized from the previous checkpoint. See [`sft/README.md`](sft/README.md) and [`grpo/README.md`](grpo/README.md) for the data formats and settings.
+```Shell
+# SFT (set dataset_dir in the yaml, then run from the LLaMA-Factory directory)
 llamafactory-cli train /path/to/RSC/sft/qwen25vl_7b_sft.yaml
-```
 
-5 epochs, LR 5e-6 cosine, effective batch 8. Checkpoints land in
-`saves/qwen25vl-7b-rsc-sft/`; the released run used **step 2340**.
-`sft/qwen25vl_3b_sft.yaml` is the same recipe on Qwen2.5-VL-3B.
-
-### 4.2 GRPO data
-
-Both RL stages read parquet splits built from scenario JSONL:
-
-```bash
-conda activate rsc-grpo
-cd grpo
+# GRPO data, stage 1, stage 2 (run from grpo/)
 ANNO_DIR=/path/to/anno OUT_DIR=data scripts/prepare_data.sh
+INIT_CHECKPOINT=/path/to/saves/qwen25vl-7b-rsc-sft/checkpoint-2340 scripts/train_stage1.sh
+INIT_CHECKPOINT=/path/to/qwen25vl-grpo-bbox-stage1/checkpoint-400 scripts/train_stage2.sh
 ```
 
-This writes `stage1.parquet`, `stage2.parquet` and `val.parquet`. Each sample is
-rendered with one of eight prompt templates; the template the SFT model was
-trained on is drawn 70% of the time in stage 1 and 40% in stage 2, so the policy
-is progressively pushed off the phrasing it memorised.
-
-### 4.3 GRPO stage 1
-
-Locks in the output contract and coarse localisation, from the SFT checkpoint.
-
-```bash
-INIT_CHECKPOINT=/path/to/saves/qwen25vl-7b-rsc-sft/checkpoint-2340 \
-  scripts/train_stage1.sh
+### Evaluation
+To evaluate on RSC-ID and RSC-OOD, run the commands below. `MODEL` can be a local checkpoint or a Hugging Face model ID, and results are saved to `eval/results/`. See [`eval/README.md`](eval/README.md) for more options.
+```Shell
+MODEL=/path/to/checkpoint COCO_ROOT=/path/to/COCO eval/scripts/eval_id.sh
+MODEL=/path/to/checkpoint COCO_ROOT=/path/to/COCO eval/scripts/eval_ood.sh
 ```
 
-5 epochs, LR 1e-6, 6 samples per prompt. The reward mixes IoU (0.75), category
-(0.15), format (0.07) and structure (0.03) at fixed weights, and the
-localisation reward pays nothing without well-formed `<answer>` tags. The
-released run used **step 400**.
-
-### 4.4 GRPO stage 2
-
-Precision refinement on the harder split, from the stage-1 checkpoint.
-
-```bash
-INIT_CHECKPOINT=/path/to/qwen25vl-grpo-bbox-stage1/checkpoint-400 \
-  scripts/train_stage2.sh
-```
-
-2 epochs, LR 2e-6, 12 samples per prompt and shorter completions. The reward mix
-is now scheduled from format-friendly towards IoU-dominated over the first 60%
-of training, the answer-tag gate is dropped, and out-of-bounds boxes are
-penalised instead. The released run used **step 100** — this is the final model.
-
-Both stages adapt the KL coefficient during training to hold the observed KL near
-a target. Every path is an environment variable, so nothing needs editing for a
-new machine; the full table is in [`grpo/README.md`](grpo/README.md).
-
-### Checkpoint lineage
-
-```
-Qwen/Qwen2.5-VL-7B-Instruct
-  └─ SFT               step 2340
-       └─ GRPO stage 1 step 400
-            └─ GRPO stage 2 step 100   ← ScenGround (released model)
-```
-
-## Citation
-
-```bibtex
+### BibTex
+```Shell
 @article{he2026beyond,
   title={Beyond Referring Expressions: Scenario Comprehension Visual Grounding},
   author={He, Ruozhen and Shah, Nisarg A and Dong, Qihua and Xiao, Zilin and Koo, Jaywon and Ordonez, Vicente},
@@ -271,10 +51,3 @@ Qwen/Qwen2.5-VL-7B-Instruct
   year={2026}
 }
 ```
-
-## Acknowledgements
-
-Built on [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL), with SFT through
-[LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) and GRPO through
-[TRL](https://github.com/huggingface/trl). Images and category vocabularies come
-from [COCO](https://cocodataset.org) and [LVIS](https://www.lvisdataset.org).

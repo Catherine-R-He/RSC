@@ -3,7 +3,7 @@
 #
 # The SFT-template ratio is annealed across stages: stage 1 mostly reuses the
 # phrasing the SFT model saw, stage 2 mixes in the other templates, and the
-# validation split is fully mixed so the eval never flatters a single template.
+# validation split uses only the SFT template.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

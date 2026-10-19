@@ -30,15 +30,13 @@ stages start from a format the policy already knows.
 
 ## Training
 
-Copy the config into your LLaMA-Factory checkout (or run from this directory
-with an absolute `dataset_dir`) and launch:
+Set `dataset_dir` in the config to the absolute path of this directory's
+`data/`, then launch from the root of your LLaMA-Factory checkout (the
+`deepspeed: examples/deepspeed/ds_z3_config.json` path is inside that repo):
 
 ```bash
-llamafactory-cli train qwen25vl_7b_sft.yaml
+llamafactory-cli train /path/to/RSC/sft/qwen25vl_7b_sft.yaml
 ```
-
-`deepspeed: examples/deepspeed/ds_z3_config.json` is a path inside the
-LLaMA-Factory repo, so run the command from its root.
 
 The vision tower and the multimodal projector are frozen: only the language
 model is updated, which keeps perception intact while adapting reasoning and
