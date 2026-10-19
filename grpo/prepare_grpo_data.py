@@ -3,8 +3,8 @@
 
 Input is JSONL, one referring-scenario sample per line, with at least::
 
-    {"image_path": "...", "H": 480, "W": 640,
-     "bbox_xywh": [x, y, w, h], "category_name": "dog",
+    {"image_path": "2014/train2014/...jpg", "H": 480, "W": 640,
+     "bbox": [x, y, w, h], "category_name": "dog",
      "scenario": "the dog that ...",
      "acceptable_names": ["dog", "puppy"]}       # optional
 
@@ -223,7 +223,7 @@ def _user_message(parts):
 
 
 def make_map_fn(split: str, seed: int, multi_templates: bool,
-                template_probs, single_template_id: int):
+                template_probs, single_template_id: int, image_root: str = None):
     rng = random.Random(seed)
     K = len(PROMPT_TEMPLATES)
 
@@ -239,6 +239,8 @@ def make_map_fn(split: str, seed: int, multi_templates: bool,
         H, W = int(ex["H"]), int(ex["W"])
         scenario = ex.get("scenario") or (ex.get("response_json", {}) or {}).get("scenario") or ""
         image_path = ex["image_path"]
+        if image_root and not os.path.isabs(image_path):
+            image_path = os.path.join(image_root, image_path)
 
         x, y, w, h = [int(round(v)) for v in (ex.get("bbox_xywh") or ex.get("bbox"))]
         x = max(0, min(x, W - 1))
@@ -289,6 +291,8 @@ def parse_args():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--refs-json", required=True, help="input JSONL of scenario samples")
+    ap.add_argument("--image-root", default=os.environ.get("COCO_ROOT"),
+                    help="prepended to relative image_path values (env: COCO_ROOT)")
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--split", default="train",
                     choices=["train", "stage1", "stage2", "val", "test"])
@@ -327,7 +331,8 @@ def main():
 
     ds = datasets.Dataset.from_list(refs).map(
         function=make_map_fn(args.split, args.seed, args.multi_templates,
-                             template_probs, TEMPLATE_NAMES.index(args.template)),
+                             template_probs, TEMPLATE_NAMES.index(args.template),
+                             image_root=args.image_root),
         with_indices=True,
         desc=f"Converting {args.split} → TRL GRPO parquet",
     )

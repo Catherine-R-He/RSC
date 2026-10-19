@@ -17,6 +17,7 @@ deepspeed: examples/deepspeed/ds_z3_config.json
 ### dataset
 dataset: rsc-scenario
 dataset_dir: /path/to/RSC/sft/data   # absolute path to this repo's sft/data (holds dataset_info.json)
+media_dir: /path/to/COCO             # COCO root; image paths in the data are relative to it
 template: qwen2_vl
 overwrite_cache: true
 preprocessing_num_workers: 16

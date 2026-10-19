@@ -27,6 +27,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 BASE_URL = "http://images.cocodataset.org"
 SPLITS = ("rsc_id_test.jsonl", "rsc_ood_test.jsonl")
+TRAIN_SPLITS = ("train/grpo_stage1.jsonl", "train/grpo_stage2.jsonl", "train/grpo_val.jsonl",
+                "train/sft.jsonl")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -45,7 +47,9 @@ def collect_paths(split_files) -> list:
             for line in f:
                 line = line.strip()
                 if line:
-                    paths.add(json.loads(line)["image_path"])
+                    rec = json.loads(line)
+                    # SFT records are ShareGPT and list their images under "images".
+                    paths.update(rec["images"] if "images" in rec else [rec["image_path"]])
     return sorted(paths)
 
 
@@ -76,13 +80,15 @@ def main():
                     help="destination COCO root (env: COCO_ROOT)")
     ap.add_argument("--splits", nargs="+", default=list(SPLITS),
                     help="evaluation JSONL files to read image paths from")
+    ap.add_argument("--with-train", action="store_true",
+                    help="also fetch the images used by the SFT and GRPO training files")
     ap.add_argument("--workers", type=int, default=16)
     args = ap.parse_args()
 
     if not args.image_root:
         ap.error("--image-root is required (or set COCO_ROOT)")
 
-    paths = collect_paths(args.splits)
+    paths = collect_paths(list(args.splits) + (list(TRAIN_SPLITS) if args.with_train else []))
     print(f"{len(paths)} unique images -> {args.image_root}")
 
     done = skipped = 0

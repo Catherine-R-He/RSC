@@ -5,14 +5,14 @@ Supervised fine-tuning of Qwen2.5-VL on RSC scenario data, run through
 
 ## Data
 
-`data/dataset_info.json` registers the dataset as `rsc-scenario` in ShareGPT
-format. Place the training file next to it as `data/sft_sharegpt.jsonl`, one
-JSON object per line:
+The training file ships as [`../data/train/sft.jsonl`](../data/train/sft.jsonl)
+(30,000 samples), registered as `rsc-scenario` in `data/dataset_info.json`. One
+ShareGPT object per line, with image paths relative to the COCO root:
 
 ```json
 {
   "id": "rsc_sft_433806_629745",
-  "images": ["/path/to/COCO_train2014_000000433806.jpg"],
+  "images": ["2014/train2014/COCO_train2014_000000433806.jpg"],
   "conversations": [
     {"from": "user", "value": "<image>\nYou are given an image and a referring scenario description...\nReferring scenario description:\n<scenario>\n"},
     {"from": "assistant", "value": "<think>...</think>\n<answer>{\"target_object\": \"baseball bat\", \"bbox\": [282, 96, 41, 233]}</answer>"}
@@ -20,9 +20,8 @@ JSON object per line:
 }
 ```
 
-The number of image paths in `images` must match the number of `<image>` tokens
-in the user turn. Any extra keys (e.g. a `meta` block) are ignored by
-LLaMA-Factory and are convenient for bookkeeping.
+The `meta` block (image id, annotation id, category, tags) is ignored by
+LLaMA-Factory. Download the images with `python ../data/download_images.py --with-train`.
 
 The user turn uses the `think_answer` template — the same text as template 0 in
 [`../grpo/prepare_grpo_data.py`](../grpo/prepare_grpo_data.py), so the GRPO
@@ -30,8 +29,8 @@ stages start from a format the policy already knows.
 
 ## Training
 
-Set `dataset_dir` in the config to the absolute path of this directory's
-`data/`, then launch from the root of your LLaMA-Factory checkout (the
+In the config, set `dataset_dir` to the absolute path of this directory's
+`data/` and `media_dir` to your COCO root, then launch from the root of your LLaMA-Factory checkout (the
 `deepspeed: examples/deepspeed/ds_z3_config.json` path is inside that repo):
 
 ```bash

@@ -8,12 +8,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-ANNO_DIR=${ANNO_DIR:?set ANNO_DIR to the directory holding stage1/stage2/val jsonl}
+ANNO_DIR=${ANNO_DIR:-../data/train}
+COCO_ROOT=${COCO_ROOT:?set COCO_ROOT to the COCO root (holding 2014/)}
 OUT_DIR=${OUT_DIR:-data}
 SEED=${SEED:-1337}
 
 python prepare_grpo_data.py \
-  --refs-json "$ANNO_DIR/stage1.jsonl" \
+  --refs-json "$ANNO_DIR/grpo_stage1.jsonl" \
+  --image-root "$COCO_ROOT" \
   --out-dir "$OUT_DIR" \
   --split stage1 \
   --multi-templates \
@@ -21,7 +23,8 @@ python prepare_grpo_data.py \
   --seed "$SEED"
 
 python prepare_grpo_data.py \
-  --refs-json "$ANNO_DIR/stage2.jsonl" \
+  --refs-json "$ANNO_DIR/grpo_stage2.jsonl" \
+  --image-root "$COCO_ROOT" \
   --out-dir "$OUT_DIR" \
   --split stage2 \
   --multi-templates \
@@ -29,7 +32,8 @@ python prepare_grpo_data.py \
   --seed "$SEED"
 
 python prepare_grpo_data.py \
-  --refs-json "$ANNO_DIR/val.jsonl" \
+  --refs-json "$ANNO_DIR/grpo_val.jsonl" \
+  --image-root "$COCO_ROOT" \
   --out-dir "$OUT_DIR" \
   --split val \
   --multi-templates \

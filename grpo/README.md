@@ -6,11 +6,14 @@ format.
 
 ## 1. Build the data
 
-Input is one JSONL file per split, one referring-scenario sample per line:
+The inputs ship in [`../data/train`](../data/train): `grpo_stage1.jsonl`
+(4,000), `grpo_stage2.jsonl` (3,500) and `grpo_val.jsonl` (5,000). They use the
+evaluation record format (see [`../data/README.md`](../data/README.md)); the
+fields read here are:
 
 ```json
-{"image_path": "/path/to/image.jpg", "H": 480, "W": 640,
- "bbox_xywh": [282, 96, 41, 233], "category_name": "baseball bat",
+{"image_path": "2014/train2014/COCO_train2014_000000433806.jpg", "H": 480, "W": 640,
+ "bbox": [282, 96, 41, 233], "category_name": "baseball bat",
  "scenario": "As a coach reviewing game footage, you want to ...",
  "acceptable_names": ["baseball bat", "bat"]}
 ```
@@ -19,7 +22,7 @@ Input is one JSONL file per split, one referring-scenario sample per line:
 correct category (see the category reward below).
 
 ```bash
-ANNO_DIR=/path/to/anno OUT_DIR=data scripts/prepare_data.sh
+COCO_ROOT=/path/to/COCO scripts/prepare_data.sh
 ```
 
 This writes `data/stage1.parquet`, `data/stage2.parquet`, and `data/val.parquet`.

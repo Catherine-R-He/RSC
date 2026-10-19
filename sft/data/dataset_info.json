@@ -1,6 +1,6 @@
 {
   "rsc-scenario": {
-    "file_name": "sft_sharegpt.jsonl",
+    "file_name": "../../data/train/sft.jsonl",
     "formatting": "sharegpt",
     "columns": {
       "messages": "conversations",
